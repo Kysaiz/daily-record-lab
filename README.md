@@ -41,3 +41,11 @@ Actions 中新增 Single-class LV275 observation，仅手动启动。北京时�
 结果包 hero-lv275-observation 保留3天，保存逐次响应、请求日志、boundary.json 和 report.json。验收需要 status 为 complete_class_observation、成功页数等于预期页数、rows 和 unique_characters 均等于 last_qualifying_position、duplicate_rows 为0，前中后三个页面和边界两次复查全部一致。
 
 这是顺序采集，官方接口没有提供快照标识。有限页面复查不能排除所有未观察到的变化；单次完整范围通过也不证明连续每日全量稳定。第一轮完成后再决定跨日复测。
+
+## 低速完整范围观察
+
+10月12日0.4次/秒这一轮在第123次请求遇到429，保存108页、1080个角色，未完成完整范围。发送间隔均不小于2.5秒，因此没有证据将此次拒绝归因于发送挤压。
+
+新增 Single-class slow observation，仍仅手动启动。一次使用同一runner、单连接，以0.1次/秒采集同一Hero LV275+范围，扫描上限750页、全阶段最多790次官方请求、程序150分钟、作业160分钟。按照当前668页估计需要约1小时55分钟；所有停止与完整性条件保持一致，首次拒绝立即结束，不自动重试或接续其他环境。
+
+结果包 hero-slow-observation 保留3天。开始和结束各向ipify发出一次IPv4出口诊断请求，保存环境与公网IPv4；诊断失败只记为未知，不伪造地址。该地址由外部服务观测，不是Nexon直接确认的出口，也不能证明与之前runner使用同一出口。不会输出凭据或完整环境变量。
