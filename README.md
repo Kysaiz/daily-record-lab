@@ -77,3 +77,11 @@ Bounded Hero checkpoint continuation仅手动执行一轮，最多两个新的�
 合并只承认连续成功批次；取消或仅部分成功的批次不推进断点。完成后复查全范围首/中/尾、最后LV275角色及下一位置，并比较旧完整参考的名字、服务器、等级、EXP、职业rank。不同runner的外部IPv4首尾均记录，但成功不能单独证明只有IP决定拒绝。
 
 hero-resume-compact包含合并数据gzip与明确完整状态的摘要；hero-resume-evidence单独保存原始响应供研究验收，均保留1天。紧凑数据保留名字、world、职业、level、exp、职业rank及gap，省略长图片URL与本榜无效的Legion零值字段。工作流汇总必须区分部分接续成功和真正完整。
+
+## Bishop零额外等待接续验证
+
+Bishop continuation without added cooldown只手动运行一轮。第一台runner从Bishop榜位置1开始；首次429保存连续成功前缀并停止。只有断点有效，才启动最后一台接续runner，它准备完成后立刻复查交接并继续，不加五分钟等待。批间0.5秒暂停保持不变，记录实际拒绝至下一请求/下一扫描的自然间隔。
+
+最多两台采集runner，每台最多500扫描页/15分钟；不启动第三台，不变更NAS，不建立定时任务。数据变动、网络或403停止。此次主要验收取消额外等待后能否恢复并持续读取，Bishop可能仍然未全量。汇总明确分别报告no_added_cooldown_test_passed、immediate_continuation_observed和collection_complete；前两项成功不代表最后一项成功。
+
+bishop-resume-compact保存紧凑数据及状态摘要，bishop-resume-evidence供离线原始证据复核，保留1天。开始/结束观测出口IP均保存，但新出口加自然启动间隔仍不能单独证明只有IP决定429。
