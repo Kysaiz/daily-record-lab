@@ -143,7 +143,8 @@ class Collector:
                 if self.extra > MAX_EXTRA:
                     raise RuntimeError('Retry budget exhausted')
             record = {'request_id': len(self.requests)+1, 'position': position, 'phase': phase,
-                      'attempt': attempt, 'started_at_utc': stamp(), 'status': None}
+                      'attempt': attempt, 'started_at_utc': stamp(), 'status': None,
+                      'started_monotonic_seconds':time.monotonic()}
             self.requests.append(record)
             self.active += 1
             self.max_active = max(self.max_active, self.active)
@@ -171,6 +172,8 @@ class Collector:
                         delay = cooldown_seconds(record['retry_after'], attempt)
                         self.gate.extend(delay)
                         record['shared_cooldown_seconds'] = delay
+                        record['cooldown_set_monotonic_seconds'] = time.monotonic()
+                        record['cooldown_until_monotonic_seconds'] = self.gate.until
                         print(f'{self.job}: 429 at {position}, shared pause {delay}s, attempt {attempt}/4', flush=True)
                     elif response.status != 200:
                         raise RuntimeError(f'HTTP {response.status}; stop class')
