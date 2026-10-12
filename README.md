@@ -85,3 +85,9 @@ Bishop continuation without added cooldown只手动运行一轮。第一台runne
 最多两台采集runner，每台最多500扫描页/15分钟；不启动第三台，不变更NAS，不建立定时任务。数据变动、网络或403停止。此次主要验收取消额外等待后能否恢复并持续读取，Bishop可能仍然未全量。汇总明确分别报告no_added_cooldown_test_passed、immediate_continuation_observed和collection_complete；前两项成功不代表最后一项成功。
 
 bishop-resume-compact保存紧凑数据及状态摘要，bishop-resume-evidence供离线原始证据复核，保留1天。开始/结束观测出口IP均保存，但新出口加自然启动间隔仍不能单独证明只有IP决定429。
+
+## Bishop完整范围与午夜后对照
+
+Complete Bishop bounded chain允许手动选择resume（从已验收6250角色接续）或fresh（从1重新获取）。整轮最多8台采集runner，各500扫描页/15分钟；遇到429或页数预算结束才有界传递连续断点，不加额外等待。完整时终点、下一行及首中尾复查，整体必须collection_complete=true。完成后未用的采集job跳过，没有无限续跑或GitHub自动日程。
+
+午夜后对照使用fresh，从头获取独立名单，不能复用前一天EXP。每轮最终bishop-full-compact包含紧凑名单与状态摘要，bishop-full-evidence保留原始响应，附件保留1天。本项目本地会分别保留基线与午夜后结果；比较名字+world的新增/消失、等级、EXP与职业rank，升级不直接相减等级内EXP，没有变化也不证明日更没有发生。
