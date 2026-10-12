@@ -221,8 +221,8 @@ def main():
     p.add_argument('--max-pages', type=int, default=2000)
     p.add_argument('--max-seconds', type=int, default=5700)
     args = p.parse_args()
-    if not 0 < args.rps <= .4 or not 1 <= args.max_pages <= 2000 or not 1 <= args.max_seconds <= 5700:
-        p.error('Bounded probe: rps <= 0.4, max-pages <= 2000, max-seconds <= 5700')
+    if not 0 < args.rps <= .4 or not 1 <= args.max_pages <= 2000 or not 1 <= args.max_seconds <= 9000:
+        p.error('Bounded probe: rps <= 0.4, max-pages <= 2000, max-seconds <= 9000')
     if not args.execute:
         print(json.dumps({'dry_run': True, **vars(args), 'request_budget': 32 if args.mode == 'boundary' else args.max_pages + 40}))
         return 0
