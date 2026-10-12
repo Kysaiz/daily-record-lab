@@ -94,7 +94,7 @@ def combine(root):
     if not reports or len(reports)>MAX_COLLECTORS or [r['segment'] for r in reports]!=list(range(1,len(reports)+1)):
         raise RuntimeError('Missing or duplicate collector segments')
     for before,after in zip(reports,reports[1:]):
-        if before['rows']!=after['prior_rows'] or not after['handoff_valid']:
+        if before['rows']!=after['prior_rows'] or (not after['handoff_valid'] and not after.get('reset_required')):
             raise RuntimeError('Checkpoint chain mismatch')
     latest=reports[-1]
     summary={'scope':SCOPE,'collection_complete':latest['status']=='complete_class_observation',
