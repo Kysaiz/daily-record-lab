@@ -1,0 +1,31 @@
+name: Single-class LV275 observation
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: single-runner-probe
+  cancel-in-progress: false
+
+jobs:
+  observe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Locate and collect Hero LV275+ at 0.4 requests per second
+        run: python probe_job_full.py --execute --mode full --job Hero --max-pages 750 --max-seconds 2400
+      - name: Save raw observations and report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: hero-lv275-observation
+          path: job-full-integrity/
+          retention-days: 3
+          if-no-files-found: warn
