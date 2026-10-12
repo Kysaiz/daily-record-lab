@@ -46,8 +46,10 @@ def validate(payload, position, job, total=None):
     count, rows = payload.get('totalCount'), payload.get('ranks')
     if not isinstance(count, int) or count < 0 or not isinstance(rows, list):
         raise RuntimeError('Invalid response schema')
-    if payload.get('pageIndex') != position or (total is not None and total != count):
-        raise RuntimeError('pageIndex or totalCount changed')
+    if payload.get('pageIndex') != position:
+        raise RuntimeError('Unexpected pageIndex')
+    if total is not None and total != count:
+        raise RuntimeError('totalCount changed')
     if len(rows) != max(0, min(10, count-position+1)):
         raise RuntimeError('Unexpected empty/short response')
     if any(r.get('jobName') != job for r in rows):
