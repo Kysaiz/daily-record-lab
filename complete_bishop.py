@@ -8,11 +8,32 @@ import math
 import os
 from collections import Counter
 from pathlib import Path
+from datetime import datetime, timezone, timedelta
 from resume_bishop import Bishop,SCOPE,fresh_seed
 from resume_hero import digest
 from matrix_probe import key
 
 MAX_COLLECTORS=8
+RESET_DELAY_SECONDS=7200
+
+
+def snapshot_changed(error):
+    """Only observed data movement permits a delayed fresh reset, never refusal."""
+    return bool(error) and any(part in error for part in (
+        'totalCount changed', 'snapshot changed at', 'Target boundary moved',
+        'Final boundary row changed', 'Final boundary moved',
+        'Cross-page level ordering changed', 'Cross-page duplicate',
+        'Target rows after terminal'))
+
+
+def reset_plan(error, stopped_at):
+    if not snapshot_changed(error):
+        return {'reset_required':False}
+    due=datetime.fromisoformat(stopped_at)+timedelta(seconds=RESET_DELAY_SECONDS)
+    return {'reset_required':True,'reset_delay_seconds':RESET_DELAY_SECONDS,
+            'reset_not_before_utc':due.astimezone(timezone.utc).isoformat(),
+            'reset_start_mode':'fresh','reset_position':1,
+            'reset_reason':'snapshot_changed','preserve_failed_attempt':True}
 
 
 def checkpoint(path):
@@ -36,6 +57,9 @@ def checkpoint(path):
 class Full(Bishop):
     def report(self):
         result=super().report()
+        if snapshot_changed(self.error) and not hasattr(self,'snapshot_stopped_at'):
+            self.snapshot_stopped_at=datetime.now(timezone.utc).isoformat()
+        result.update(reset_plan(self.error,getattr(self,'snapshot_stopped_at',result['updated_at_utc'])))
         result.update(resumable=(self.status in ('incomplete_refusal','incomplete_budget') and self.handoff_valid and bool(self.rows)),
             max_collectors=MAX_COLLECTORS,initial_rows=self.seed['initial_rows'],initial_mode=self.seed['initial_mode'],
             strategy='Up to eight bounded Bishop collectors; first refusal stops, accurate checkpoint handoff, no extra cooldown')
@@ -79,6 +103,7 @@ def combine(root):
         'sent_requests':sum(r['sent_requests'] for r in reports),'segments':reports,
         'statuses':dict(sum((Counter(r['statuses']) for r in reports),Counter())),
         'caveat':'Finite snapshot checks; one class, no daily stability or all-GMS inference.'}
+    summary.update({k:v for k,v in latest.items() if k.startswith('reset_') or k=='preserve_failed_attempt'})
     packet=root/latest['relative_directory']/'checkpoint.json.gz'
     if packet.exists():
         seed=checkpoint(packet)
