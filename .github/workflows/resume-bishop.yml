@@ -1,0 +1,111 @@
+name: Bishop continuation without added cooldown
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: single-runner-probe
+  cancel-in-progress: false
+
+env:
+  PROBE_JOB: Bishop
+
+jobs:
+  first:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    outputs:
+      resumable: ${{ steps.inspect.outputs.resumable }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install aiohttp==3.14.3
+      - name: First continuation; preserve incomplete status
+        continue-on-error: true
+        run: python resume_bishop.py --execute --segment 1
+      - name: Inspect whether first refusal checkpoint is valid
+        id: inspect
+        if: always()
+        run: |
+          python - <<'PY'
+          import json, os
+          from pathlib import Path
+          p = Path('bishop-data/1/report.json')
+          data = json.loads(p.read_text()) if p.exists() else {}
+          value = str(data.get('resumable', False)).lower()
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
+              f.write('resumable=' + value + '\n')
+          print(json.dumps({'resumable': value, 'status': data.get('status')}))
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: bishop-resume-segment1
+          path: bishop-data/
+          retention-days: 1
+          if-no-files-found: error
+
+  second:
+    needs: first
+    if: needs.first.outputs.resumable == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install aiohttp==3.14.3
+      - uses: actions/download-artifact@v4
+        with:
+          name: bishop-resume-segment1
+          path: bishop-data
+      - name: Last continuation with no added cooldown
+        continue-on-error: true
+        run: python resume_bishop.py --execute --segment 2 --seed bishop-data/1/checkpoint.json.gz
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: bishop-resume-segment2
+          path: bishop-data/2/
+          retention-days: 1
+          if-no-files-found: error
+
+  combine:
+    needs: [first, second]
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: bishop-resume-segment*
+          path: collected
+          merge-multiple: false
+      - name: Report continuation success separately from full collection
+        run: python resume_bishop.py --combine collected
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: bishop-resume-compact
+          path: |
+            bishop-summary.json
+            bishop-characters.json.gz
+          retention-days: 1
+          if-no-files-found: error
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: bishop-resume-evidence
+          path: collected/
+          retention-days: 1
+          if-no-files-found: error
