@@ -1,0 +1,80 @@
+name: Original class matrix with bounded cooldown
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: single-runner-probe
+  cancel-in-progress: false
+
+jobs:
+  list:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      classes: ${{ steps.classes.outputs.classes }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - id: classes
+        run: echo "classes=$(python matrix_probe.py --list)" >> "$GITHUB_OUTPUT"
+
+  observe:
+    needs: list
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      max-parallel: 8
+      matrix:
+        class: ${{ fromJson(needs.list.outputs.classes) }}
+    env:
+      PROBE_JOB: ${{ matrix.class }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install pinned client
+        run: pip install aiohttp==3.14.3
+      - name: Observe one class with shared cooldown
+        run: python matrix_probe.py --execute --job "$PROBE_JOB"
+      - name: Upload raw observations even after failure
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: matrix-class-${{ strategy.job-index }}
+          path: matrix-data/
+          retention-days: 1
+          if-no-files-found: error
+
+  combine:
+    needs: observe
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: matrix-class-*
+          path: collected
+          merge-multiple: true
+      - name: Report incomplete classes and recorded IPs
+        run: python matrix_probe.py --combine collected
+      - name: Save summary
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: matrix-summary
+          path: matrix-summary.json
+          retention-days: 1
+          if-no-files-found: error
