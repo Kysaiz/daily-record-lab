@@ -1,0 +1,31 @@
+name: Single-runner integrity observation
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: single-runner-probe
+  cancel-in-progress: false
+
+jobs:
+  observe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Observe 100 non-overlapping Bishop pages
+        run: python probe_job_pages.py --execute
+      - name: Save raw observations and report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: single-runner-observation
+          path: job-page-integrity/
+          retention-days: 3
+          if-no-files-found: warn
