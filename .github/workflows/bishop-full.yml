@@ -1,0 +1,311 @@
+name: Complete Bishop bounded chain
+
+on:
+  workflow_dispatch:
+    inputs:
+      start:
+        description: Start from audited 6250-row prefix or collect fresh
+        type: choice
+        default: resume
+        options: [resume, fresh]
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: single-runner-probe
+  cancel-in-progress: false
+
+env:
+  PROBE_JOB: Bishop
+  PROBE_MODE: ${{ inputs.start }}
+
+jobs:
+  stage1:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    outputs:
+      resumable: ${{ steps.inspect.outputs.resumable }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install aiohttp==3.14.3
+      - uses: actions/download-artifact@v4
+        if: inputs.start == 'resume'
+        with:
+          name: bishop-resume-segment2
+          path: baseline
+          run-id: 38254043906
+          github-token: ${{ github.token }}
+      - name: Observe first bounded segment
+        continue-on-error: true
+        run: |
+          if [ "$PROBE_MODE" = fresh ]; then
+            python complete_bishop.py --execute --segment 1
+          else
+            python complete_bishop.py --execute --segment 1 --seed baseline/checkpoint.json.gz
+          fi
+      - id: inspect
+        if: always()
+        run: python complete_bishop.py --inspect bishop-full-data/1/report.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: bishop-full-stage1
+          path: bishop-full-data/
+          retention-days: 1
+          if-no-files-found: error
+
+  stage2:
+    needs: stage1
+    if: needs.stage1.outputs.resumable == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    outputs:
+      resumable: ${{ steps.inspect.outputs.resumable }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install aiohttp==3.14.3
+      - uses: actions/download-artifact@v4
+        with:
+          name: bishop-full-stage1
+          path: incoming
+      - name: Continue without added cooldown
+        continue-on-error: true
+        run: python complete_bishop.py --execute --segment 2 --seed incoming/1/checkpoint.json.gz
+      - id: inspect
+        if: always()
+        run: python complete_bishop.py --inspect bishop-full-data/2/report.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: bishop-full-stage2
+          path: bishop-full-data/
+          retention-days: 1
+          if-no-files-found: error
+
+  stage3:
+    needs: stage2
+    if: needs.stage2.outputs.resumable == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    outputs:
+      resumable: ${{ steps.inspect.outputs.resumable }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install aiohttp==3.14.3
+      - uses: actions/download-artifact@v4
+        with:
+          name: bishop-full-stage2
+          path: incoming
+      - name: Continue without added cooldown
+        continue-on-error: true
+        run: python complete_bishop.py --execute --segment 3 --seed incoming/2/checkpoint.json.gz
+      - id: inspect
+        if: always()
+        run: python complete_bishop.py --inspect bishop-full-data/3/report.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: bishop-full-stage3
+          path: bishop-full-data/
+          retention-days: 1
+          if-no-files-found: error
+
+  stage4:
+    needs: stage3
+    if: needs.stage3.outputs.resumable == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    outputs:
+      resumable: ${{ steps.inspect.outputs.resumable }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install aiohttp==3.14.3
+      - uses: actions/download-artifact@v4
+        with:
+          name: bishop-full-stage3
+          path: incoming
+      - name: Continue without added cooldown
+        continue-on-error: true
+        run: python complete_bishop.py --execute --segment 4 --seed incoming/3/checkpoint.json.gz
+      - id: inspect
+        if: always()
+        run: python complete_bishop.py --inspect bishop-full-data/4/report.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: bishop-full-stage4
+          path: bishop-full-data/
+          retention-days: 1
+          if-no-files-found: error
+
+  stage5:
+    needs: stage4
+    if: needs.stage4.outputs.resumable == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    outputs:
+      resumable: ${{ steps.inspect.outputs.resumable }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install aiohttp==3.14.3
+      - uses: actions/download-artifact@v4
+        with:
+          name: bishop-full-stage4
+          path: incoming
+      - name: Continue without added cooldown
+        continue-on-error: true
+        run: python complete_bishop.py --execute --segment 5 --seed incoming/4/checkpoint.json.gz
+      - id: inspect
+        if: always()
+        run: python complete_bishop.py --inspect bishop-full-data/5/report.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: bishop-full-stage5
+          path: bishop-full-data/
+          retention-days: 1
+          if-no-files-found: error
+
+  stage6:
+    needs: stage5
+    if: needs.stage5.outputs.resumable == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    outputs:
+      resumable: ${{ steps.inspect.outputs.resumable }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install aiohttp==3.14.3
+      - uses: actions/download-artifact@v4
+        with:
+          name: bishop-full-stage5
+          path: incoming
+      - name: Continue without added cooldown
+        continue-on-error: true
+        run: python complete_bishop.py --execute --segment 6 --seed incoming/5/checkpoint.json.gz
+      - id: inspect
+        if: always()
+        run: python complete_bishop.py --inspect bishop-full-data/6/report.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: bishop-full-stage6
+          path: bishop-full-data/
+          retention-days: 1
+          if-no-files-found: error
+
+  stage7:
+    needs: stage6
+    if: needs.stage6.outputs.resumable == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    outputs:
+      resumable: ${{ steps.inspect.outputs.resumable }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install aiohttp==3.14.3
+      - uses: actions/download-artifact@v4
+        with:
+          name: bishop-full-stage6
+          path: incoming
+      - name: Continue without added cooldown
+        continue-on-error: true
+        run: python complete_bishop.py --execute --segment 7 --seed incoming/6/checkpoint.json.gz
+      - id: inspect
+        if: always()
+        run: python complete_bishop.py --inspect bishop-full-data/7/report.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: bishop-full-stage7
+          path: bishop-full-data/
+          retention-days: 1
+          if-no-files-found: error
+
+  stage8:
+    needs: stage7
+    if: needs.stage7.outputs.resumable == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    outputs:
+      resumable: ${{ steps.inspect.outputs.resumable }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install aiohttp==3.14.3
+      - uses: actions/download-artifact@v4
+        with:
+          name: bishop-full-stage7
+          path: incoming
+      - name: Continue without added cooldown
+        continue-on-error: true
+        run: python complete_bishop.py --execute --segment 8 --seed incoming/7/checkpoint.json.gz
+      - id: inspect
+        if: always()
+        run: python complete_bishop.py --inspect bishop-full-data/8/report.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: bishop-full-stage8
+          path: bishop-full-data/
+          retention-days: 1
+          if-no-files-found: error
+
+  combine:
+    needs: [stage1, stage2, stage3, stage4, stage5, stage6, stage7, stage8]
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: bishop-full-stage*
+          path: collected
+          merge-multiple: false
+      - name: Require complete Bishop level boundary
+        run: python complete_bishop.py --combine collected
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: bishop-full-compact
+          path: |
+            bishop-full-summary.json
+            bishop-full-characters.json.gz
+          retention-days: 1
+          if-no-files-found: error
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: bishop-full-evidence
+          path: collected/
+          retention-days: 1
+          if-no-files-found: error
