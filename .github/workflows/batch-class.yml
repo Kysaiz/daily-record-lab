@@ -1,0 +1,83 @@
+name: Corrected class batch observation
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: single-runner-probe
+  cancel-in-progress: false
+
+jobs:
+  observe:
+    runs-on: ubuntu-latest
+    env:
+      PROBE_JOB: ${{ matrix.class }}
+    timeout-minutes: 20
+    strategy:
+      fail-fast: true
+      max-parallel: 8
+      matrix:
+        class: [Hero]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install pinned async client
+        run: pip install aiohttp==3.14.3
+      - name: Record initial environment and IPv4 egress
+        run: |
+          mkdir -p job-full-integrity
+          python - <<'PY'
+          import datetime, json, os, platform, subprocess
+          from pathlib import Path
+          data = {'at_utc': datetime.datetime.now(datetime.timezone.utc).isoformat(),
+                  'run_id': os.getenv('GITHUB_RUN_ID'), 'runner_os': os.getenv('RUNNER_OS'),
+                  'runner_arch': os.getenv('RUNNER_ARCH'), 'image_os': os.getenv('ImageOS'),
+                  'image_version': os.getenv('ImageVersion'), 'python': platform.python_version(),
+                  'job': os.getenv('PROBE_JOB'),
+                  'aiohttp': __import__('aiohttp').__version__,
+                  'egress_endpoint': 'https://api.ipify.org?format=json',
+                  'caveat': 'External IPv4 egress observation; not a direct measurement by the Nexon API.'}
+          try:
+              result = subprocess.run(['curl', '--ipv4', '--fail', '--silent', '--show-error', '--max-time', '10',
+                                       data['egress_endpoint']], capture_output=True, text=True, timeout=15)
+              data['egress_ipv4'] = json.loads(result.stdout)['ip'] if result.returncode == 0 else None
+              data['egress_error'] = result.stderr[:500] if result.returncode else None
+          except Exception as error:
+              data['egress_ipv4'], data['egress_error'] = None, str(error)
+          Path('job-full-integrity/environment-start.json').write_text(json.dumps(data, indent=2))
+          print(json.dumps(data))
+          PY
+      - name: Collect corrected Hero pages in five-request batches
+        run: python probe_job_async.py --execute --job ${{ matrix.class }}
+      - name: Record final IPv4 egress
+        if: always()
+        run: |
+          python - <<'PY'
+          import datetime, json, subprocess
+          from pathlib import Path
+          data = {'at_utc': datetime.datetime.now(datetime.timezone.utc).isoformat(),
+                  'egress_endpoint': 'https://api.ipify.org?format=json'}
+          try:
+              result = subprocess.run(['curl', '--ipv4', '--fail', '--silent', '--show-error', '--max-time', '10',
+                                       data['egress_endpoint']], capture_output=True, text=True, timeout=15)
+              data['egress_ipv4'] = json.loads(result.stdout)['ip'] if result.returncode == 0 else None
+              data['egress_error'] = result.stderr[:500] if result.returncode else None
+          except Exception as error:
+              data['egress_ipv4'], data['egress_error'] = None, str(error)
+          Path('job-full-integrity').mkdir(exist_ok=True)
+          Path('job-full-integrity/environment-end.json').write_text(json.dumps(data, indent=2))
+          print(json.dumps(data))
+          PY
+      - name: Save raw observations and report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: class-batch-${{ strategy.job-index }}
+          path: job-full-integrity/
+          retention-days: 3
+          if-no-files-found: warn
