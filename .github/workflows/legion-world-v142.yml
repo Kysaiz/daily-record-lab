@@ -1,0 +1,152 @@
+name: One Legion world with eight shards v14.2
+on:
+  workflow_call:
+    inputs:
+      task: {type: string, required: true}
+      deadline: {type: string, required: true}
+permissions: {contents: read, actions: read}
+env:
+  TASK: ${{ inputs.task }}
+  DEADLINE: ${{ inputs.deadline }}
+jobs:
+  plan1:
+    runs-on: ubuntu-latest
+    timeout-minutes: 160
+    outputs:
+      ok: ${{ steps.plan.outputs.ok }}
+      matrix: ${{ steps.plan.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - run: pip install aiohttp==3.14.3
+      - id: plan
+        env: {RESET: 'false'}
+        run: python collector_v142.py plan
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: plan-${{ fromJson(inputs.task).key }}-a1
+          path: planning/
+          retention-days: 2
+  shards1:
+    needs: plan1
+    if: ${{ needs.plan1.outputs.ok == 'true' && needs.plan1.outputs.matrix != '[]' }}
+    strategy:
+      fail-fast: false
+      max-parallel: 8
+      matrix:
+        task: ${{ fromJson(needs.plan1.outputs.matrix) }}
+    uses: ./.github/workflows/chain-128-v142.yml
+    with:
+      task: ${{ toJson(matrix.task) }}
+      deadline: ${{ inputs.deadline }}
+  merge1:
+    needs: [plan1, shards1]
+    if: ${{ always() && needs.plan1.result == 'success' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    outputs:
+      reset: ${{ steps.merge.outputs.reset }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - run: pip install aiohttp==3.14.3
+      - uses: actions/download-artifact@v4
+        with:
+          name: plan-${{ fromJson(inputs.task).key }}-a1
+          path: planning
+      - uses: actions/download-artifact@v4
+        if: needs.shards1.result != 'skipped'
+        with:
+          pattern: cohort-${{ fromJson(inputs.task).key }}-s*-a1
+          path: collected
+      - id: merge
+        run: python collector_v142.py merge --attempt 1
+      - uses: actions/upload-artifact@v4
+        with:
+          name: world-${{ fromJson(inputs.task).key }}-a1
+          path: cohort/
+          retention-days: 2
+  plan2:
+    needs: merge1
+    if: ${{ needs.merge1.outputs.reset == 'true' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 160
+    outputs:
+      ok: ${{ steps.plan.outputs.ok }}
+      matrix: ${{ steps.plan.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - run: pip install aiohttp==3.14.3
+      - uses: actions/download-artifact@v4
+        with:
+          name: world-${{ fromJson(inputs.task).key }}-a1
+          path: reset
+      - id: plan
+        env: {RESET: 'true'}
+        run: python collector_v142.py plan
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: plan-${{ fromJson(inputs.task).key }}-a2
+          path: planning/
+          retention-days: 2
+  shards2:
+    needs: plan2
+    if: ${{ needs.plan2.outputs.ok == 'true' && needs.plan2.outputs.matrix != '[]' }}
+    strategy:
+      fail-fast: false
+      max-parallel: 8
+      matrix:
+        task: ${{ fromJson(needs.plan2.outputs.matrix) }}
+    uses: ./.github/workflows/chain-128-v142.yml
+    with:
+      task: ${{ toJson(matrix.task) }}
+      deadline: ${{ inputs.deadline }}
+  merge2:
+    needs: [plan2, shards2]
+    if: ${{ always() && needs.plan2.result == 'success' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    outputs:
+      reset: ${{ steps.merge.outputs.reset }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - run: pip install aiohttp==3.14.3
+      - uses: actions/download-artifact@v4
+        with:
+          name: plan-${{ fromJson(inputs.task).key }}-a2
+          path: planning
+      - uses: actions/download-artifact@v4
+        if: needs.shards2.result != 'skipped'
+        with:
+          pattern: cohort-${{ fromJson(inputs.task).key }}-s*-a2
+          path: collected
+      - id: merge
+        run: python collector_v142.py merge --attempt 2
+      - uses: actions/upload-artifact@v4
+        with:
+          name: world-${{ fromJson(inputs.task).key }}-a2
+          path: cohort/
+          retention-days: 2
+  finish:
+    needs: [merge1, merge2]
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: world-${{ fromJson(inputs.task).key }}-a${{ needs.merge2.result == 'success' && '2' || '1' }}
+          path: cohort
+      - uses: actions/upload-artifact@v4
+        with:
+          name: cohort-${{ fromJson(inputs.task).key }}
+          path: cohort/
+          retention-days: 2
