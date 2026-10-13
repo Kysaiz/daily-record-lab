@@ -42,7 +42,7 @@ class TaskCollector(base.Collector):
         self.anomaly=None
         if seed:
             if seed['task']!=task or seed['rows_sha256']!=digest(seed['rows']):raise RuntimeError('Invalid checkpoint scope/hash')
-            if seed['next_position']!=len(seed['rows'])+1 or (task['type']=='job' and len(seed['rows'])%10):raise RuntimeError('Invalid checkpoint cursor')
+            if seed['next_position']!=len(seed['rows'])+1:raise RuntimeError('Invalid checkpoint cursor')
             self.rows=seed['rows'];self.seen={base.key(r) for r in self.rows};self.total=seed['total_count']
             if len(self.rows)!=len(self.seen):raise RuntimeError('Duplicate checkpoint')
             self.prior_rows=len(self.rows);self.cursor=seed['next_position'];self.previous_hash=seed['rows_sha256']
