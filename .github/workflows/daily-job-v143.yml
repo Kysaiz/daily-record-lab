@@ -1,0 +1,64 @@
+name: NAS job collection v14.3
+run-name: NAS job ${{ inputs.request_id }}
+on:
+  workflow_dispatch:
+    inputs:
+      request_id: {type: string, required: true}
+      snapshot_day: {type: string, required: true}
+      tasks: {type: string, required: true}
+      deadline: {type: string, required: true}
+permissions: {contents: read, actions: read}
+concurrency:
+  group: nas-v14-job
+  cancel-in-progress: false
+env:
+  TASKS: ${{ inputs.tasks }}
+  REQUEST_ID: ${{ inputs.request_id }}
+  SNAPSHOT_DAY: ${{ inputs.snapshot_day }}
+  DEADLINE: ${{ inputs.deadline }}
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    outputs:
+      matrix: ${{ steps.prepare.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - run: pip install aiohttp==3.14.3
+      - id: prepare
+        env: {KIND: job}
+        run: python collector_v143.py prepare
+  collect:
+    needs: prepare
+    strategy:
+      fail-fast: false
+      max-parallel: 8
+      matrix:
+        task: ${{ fromJson(needs.prepare.outputs.matrix) }}
+    uses: ./.github/workflows/chain-32-v143.yml
+    with:
+      task: ${{ toJson(matrix.task) }}
+      deadline: ${{ inputs.deadline }}
+  export:
+    needs: [collect]
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - run: pip install aiohttp==3.14.3
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: cohort-job*
+          path: collected
+      - run: python collector_v143.py export
+      - uses: actions/upload-artifact@v4
+        with:
+          name: daily-compact
+          path: daily-compact.zip
+          retention-days: 2
+          if-no-files-found: error

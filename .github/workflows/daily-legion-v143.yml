@@ -1,0 +1,88 @@
+name: NAS legion collection v14.3
+run-name: NAS legion ${{ inputs.request_id }}
+on:
+  workflow_dispatch:
+    inputs:
+      request_id: {type: string, required: true}
+      snapshot_day: {type: string, required: true}
+      tasks: {type: string, required: true}
+      deadline: {type: string, required: true}
+permissions: {contents: read, actions: read}
+concurrency:
+  group: nas-v14-legion
+  cancel-in-progress: false
+env:
+  TASKS: ${{ inputs.tasks }}
+  REQUEST_ID: ${{ inputs.request_id }}
+  SNAPSHOT_DAY: ${{ inputs.snapshot_day }}
+  DEADLINE: ${{ inputs.deadline }}
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    outputs:
+      world45: ${{ steps.prepare.outputs.world45 }}
+      has45: ${{ steps.prepare.outputs.has45 }}
+      world70: ${{ steps.prepare.outputs.world70 }}
+      has70: ${{ steps.prepare.outputs.has70 }}
+      world1: ${{ steps.prepare.outputs.world1 }}
+      has1: ${{ steps.prepare.outputs.has1 }}
+      world19: ${{ steps.prepare.outputs.world19 }}
+      has19: ${{ steps.prepare.outputs.has19 }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - run: pip install aiohttp==3.14.3
+      - id: prepare
+        env: {KIND: legion}
+        run: python collector_v143.py prepare
+  world45:
+    needs: [prepare]
+    if: ${{ always() && needs.prepare.result == 'success' && needs.prepare.outputs.has45 == 'true' }}
+    uses: ./.github/workflows/legion-world-v143.yml
+    with:
+      task: ${{ needs.prepare.outputs.world45 }}
+      deadline: ${{ inputs.deadline }}
+  world70:
+    needs: [prepare, world45]
+    if: ${{ always() && needs.prepare.result == 'success' && needs.prepare.outputs.has70 == 'true' }}
+    uses: ./.github/workflows/legion-world-v143.yml
+    with:
+      task: ${{ needs.prepare.outputs.world70 }}
+      deadline: ${{ inputs.deadline }}
+  world1:
+    needs: [prepare, world70]
+    if: ${{ always() && needs.prepare.result == 'success' && needs.prepare.outputs.has1 == 'true' }}
+    uses: ./.github/workflows/legion-world-v143.yml
+    with:
+      task: ${{ needs.prepare.outputs.world1 }}
+      deadline: ${{ inputs.deadline }}
+  world19:
+    needs: [prepare, world1]
+    if: ${{ always() && needs.prepare.result == 'success' && needs.prepare.outputs.has19 == 'true' }}
+    uses: ./.github/workflows/legion-world-v143.yml
+    with:
+      task: ${{ needs.prepare.outputs.world19 }}
+      deadline: ${{ inputs.deadline }}
+  export:
+    needs: [world45, world70, world1, world19]
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - run: pip install aiohttp==3.14.3
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: cohort-legion*
+          path: collected
+      - run: python collector_v143.py export
+      - uses: actions/upload-artifact@v4
+        with:
+          name: daily-compact
+          path: daily-compact.zip
+          retention-days: 2
+          if-no-files-found: error
