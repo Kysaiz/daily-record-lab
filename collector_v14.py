@@ -304,7 +304,7 @@ def main():
     if args.action=='phase':phase(task,args.phase,Path('incoming') if args.phase>1 else None,Path('result'))
     elif args.action=='finish':finish(Path('incoming'),Path('cohort'),task)
     elif args.action=='select':
-        results=json.loads(os.environ['NEEDS_JSON']);values=[v['outputs'].get('artifact') for v in results.values() if v['outputs'].get('artifact')]
+        results=json.loads(os.environ['NEEDS_JSON']);values=[v['outputs'].get('artifact') for name in sorted(results) for v in [results[name]] if v['outputs'].get('artifact')]
         output(artifact=values[-1] if values else 'missing')
     elif args.action=='plan':plan(task,Path('planning'),Path('reset/report.json') if os.getenv('RESET')=='true' else None)
     elif args.action=='merge':merge_world(Path('planning/plan.json'),Path('collected'),Path('cohort'),args.attempt)
