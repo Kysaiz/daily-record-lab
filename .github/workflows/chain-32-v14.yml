@@ -1,0 +1,863 @@
+name: Bounded task chain 32 v14
+on:
+  workflow_call:
+    inputs:
+      task: {type: string, required: true}
+      deadline: {type: string, required: true}
+permissions: {contents: read, actions: read}
+env:
+  TASK: ${{ inputs.task }}
+  DEADLINE: ${{ inputs.deadline }}
+jobs:
+  p001:
+    runs-on: ubuntu-latest
+    timeout-minutes: 160
+    outputs:
+      again: ${{ steps.scan.outputs.again }}
+      artifact: ${{ steps.scan.outputs.artifact }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - run: pip install aiohttp==3.14.3
+      - id: scan
+        run: python collector_v14.py phase --phase 1
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: state-${{ fromJson(inputs.task).key }}-p001
+          path: result/
+          retention-days: 2
+          if-no-files-found: error
+  p002:
+    needs: p001
+    if: ${{ needs.p001.outputs.again == 'true' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 160
+    outputs:
+      again: ${{ steps.scan.outputs.again }}
+      artifact: ${{ steps.scan.outputs.artifact }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - run: pip install aiohttp==3.14.3
+      - uses: actions/download-artifact@v4
+        with:
+          name: ${{ needs.p001.outputs.artifact }}
+          path: incoming
+      - id: scan
+        run: python collector_v14.py phase --phase 2
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: state-${{ fromJson(inputs.task).key }}-p002
+          path: result/
+          retention-days: 2
+          if-no-files-found: error
+  p003:
+    needs: p002
+    if: ${{ needs.p002.outputs.again == 'true' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 160
+    outputs:
+      again: ${{ steps.scan.outputs.again }}
+      artifact: ${{ steps.scan.outputs.artifact }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - run: pip install aiohttp==3.14.3
+      - uses: actions/download-artifact@v4
+        with:
+          name: ${{ needs.p002.outputs.artifact }}
+          path: incoming
+      - id: scan
+        run: python collector_v14.py phase --phase 3
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: state-${{ fromJson(inputs.task).key }}-p003
+          path: result/
+          retention-days: 2
+          if-no-files-found: error
+  p004:
+    needs: p003
+    if: ${{ needs.p003.outputs.again == 'true' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 160
+    outputs:
+      again: ${{ steps.scan.outputs.again }}
+      artifact: ${{ steps.scan.outputs.artifact }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - run: pip install aiohttp==3.14.3
+      - uses: actions/download-artifact@v4
+        with:
+          name: ${{ needs.p003.outputs.artifact }}
+          path: incoming
+      - id: scan
+        run: python collector_v14.py phase --phase 4
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: state-${{ fromJson(inputs.task).key }}-p004
+          path: result/
+          retention-days: 2
+          if-no-files-found: error
+  p005:
+    needs: p004
+    if: ${{ needs.p004.outputs.again == 'true' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 160
+    outputs:
+      again: ${{ steps.scan.outputs.again }}
+      artifact: ${{ steps.scan.outputs.artifact }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - run: pip install aiohttp==3.14.3
+      - uses: actions/download-artifact@v4
+        with:
+          name: ${{ needs.p004.outputs.artifact }}
+          path: incoming
+      - id: scan
+        run: python collector_v14.py phase --phase 5
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: state-${{ fromJson(inputs.task).key }}-p005
+          path: result/
+          retention-days: 2
+          if-no-files-found: error
+  p006:
+    needs: p005
+    if: ${{ needs.p005.outputs.again == 'true' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 160
+    outputs:
+      again: ${{ steps.scan.outputs.again }}
+      artifact: ${{ steps.scan.outputs.artifact }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - run: pip install aiohttp==3.14.3
+      - uses: actions/download-artifact@v4
+        with:
+          name: ${{ needs.p005.outputs.artifact }}
+          path: incoming
+      - id: scan
+        run: python collector_v14.py phase --phase 6
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: state-${{ fromJson(inputs.task).key }}-p006
+          path: result/
+          retention-days: 2
+          if-no-files-found: error
+  p007:
+    needs: p006
+    if: ${{ needs.p006.outputs.again == 'true' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 160
+    outputs:
+      again: ${{ steps.scan.outputs.again }}
+      artifact: ${{ steps.scan.outputs.artifact }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - run: pip install aiohttp==3.14.3
+      - uses: actions/download-artifact@v4
+        with:
+          name: ${{ needs.p006.outputs.artifact }}
+          path: incoming
+      - id: scan
+        run: python collector_v14.py phase --phase 7
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: state-${{ fromJson(inputs.task).key }}-p007
+          path: result/
+          retention-days: 2
+          if-no-files-found: error
+  p008:
+    needs: p007
+    if: ${{ needs.p007.outputs.again == 'true' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 160
+    outputs:
+      again: ${{ steps.scan.outputs.again }}
+      artifact: ${{ steps.scan.outputs.artifact }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - run: pip install aiohttp==3.14.3
+      - uses: actions/download-artifact@v4
+        with:
+          name: ${{ needs.p007.outputs.artifact }}
+          path: incoming
+      - id: scan
+        run: python collector_v14.py phase --phase 8
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: state-${{ fromJson(inputs.task).key }}-p008
+          path: result/
+          retention-days: 2
+          if-no-files-found: error
+  p009:
+    needs: p008
+    if: ${{ needs.p008.outputs.again == 'true' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 160
+    outputs:
+      again: ${{ steps.scan.outputs.again }}
+      artifact: ${{ steps.scan.outputs.artifact }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - run: pip install aiohttp==3.14.3
+      - uses: actions/download-artifact@v4
+        with:
+          name: ${{ needs.p008.outputs.artifact }}
+          path: incoming
+      - id: scan
+        run: python collector_v14.py phase --phase 9
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: state-${{ fromJson(inputs.task).key }}-p009
+          path: result/
+          retention-days: 2
+          if-no-files-found: error
+  p010:
+    needs: p009
+    if: ${{ needs.p009.outputs.again == 'true' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 160
+    outputs:
+      again: ${{ steps.scan.outputs.again }}
+      artifact: ${{ steps.scan.outputs.artifact }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - run: pip install aiohttp==3.14.3
+      - uses: actions/download-artifact@v4
+        with:
+          name: ${{ needs.p009.outputs.artifact }}
+          path: incoming
+      - id: scan
+        run: python collector_v14.py phase --phase 10
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: state-${{ fromJson(inputs.task).key }}-p010
+          path: result/
+          retention-days: 2
+          if-no-files-found: error
+  p011:
+    needs: p010
+    if: ${{ needs.p010.outputs.again == 'true' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 160
+    outputs:
+      again: ${{ steps.scan.outputs.again }}
+      artifact: ${{ steps.scan.outputs.artifact }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - run: pip install aiohttp==3.14.3
+      - uses: actions/download-artifact@v4
+        with:
+          name: ${{ needs.p010.outputs.artifact }}
+          path: incoming
+      - id: scan
+        run: python collector_v14.py phase --phase 11
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: state-${{ fromJson(inputs.task).key }}-p011
+          path: result/
+          retention-days: 2
+          if-no-files-found: error
+  p012:
+    needs: p011
+    if: ${{ needs.p011.outputs.again == 'true' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 160
+    outputs:
+      again: ${{ steps.scan.outputs.again }}
+      artifact: ${{ steps.scan.outputs.artifact }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - run: pip install aiohttp==3.14.3
+      - uses: actions/download-artifact@v4
+        with:
+          name: ${{ needs.p011.outputs.artifact }}
+          path: incoming
+      - id: scan
+        run: python collector_v14.py phase --phase 12
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: state-${{ fromJson(inputs.task).key }}-p012
+          path: result/
+          retention-days: 2
+          if-no-files-found: error
+  p013:
+    needs: p012
+    if: ${{ needs.p012.outputs.again == 'true' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 160
+    outputs:
+      again: ${{ steps.scan.outputs.again }}
+      artifact: ${{ steps.scan.outputs.artifact }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - run: pip install aiohttp==3.14.3
+      - uses: actions/download-artifact@v4
+        with:
+          name: ${{ needs.p012.outputs.artifact }}
+          path: incoming
+      - id: scan
+        run: python collector_v14.py phase --phase 13
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: state-${{ fromJson(inputs.task).key }}-p013
+          path: result/
+          retention-days: 2
+          if-no-files-found: error
+  p014:
+    needs: p013
+    if: ${{ needs.p013.outputs.again == 'true' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 160
+    outputs:
+      again: ${{ steps.scan.outputs.again }}
+      artifact: ${{ steps.scan.outputs.artifact }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - run: pip install aiohttp==3.14.3
+      - uses: actions/download-artifact@v4
+        with:
+          name: ${{ needs.p013.outputs.artifact }}
+          path: incoming
+      - id: scan
+        run: python collector_v14.py phase --phase 14
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: state-${{ fromJson(inputs.task).key }}-p014
+          path: result/
+          retention-days: 2
+          if-no-files-found: error
+  p015:
+    needs: p014
+    if: ${{ needs.p014.outputs.again == 'true' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 160
+    outputs:
+      again: ${{ steps.scan.outputs.again }}
+      artifact: ${{ steps.scan.outputs.artifact }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - run: pip install aiohttp==3.14.3
+      - uses: actions/download-artifact@v4
+        with:
+          name: ${{ needs.p014.outputs.artifact }}
+          path: incoming
+      - id: scan
+        run: python collector_v14.py phase --phase 15
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: state-${{ fromJson(inputs.task).key }}-p015
+          path: result/
+          retention-days: 2
+          if-no-files-found: error
+  p016:
+    needs: p015
+    if: ${{ needs.p015.outputs.again == 'true' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 160
+    outputs:
+      again: ${{ steps.scan.outputs.again }}
+      artifact: ${{ steps.scan.outputs.artifact }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - run: pip install aiohttp==3.14.3
+      - uses: actions/download-artifact@v4
+        with:
+          name: ${{ needs.p015.outputs.artifact }}
+          path: incoming
+      - id: scan
+        run: python collector_v14.py phase --phase 16
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: state-${{ fromJson(inputs.task).key }}-p016
+          path: result/
+          retention-days: 2
+          if-no-files-found: error
+  p017:
+    needs: p016
+    if: ${{ needs.p016.outputs.again == 'true' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 160
+    outputs:
+      again: ${{ steps.scan.outputs.again }}
+      artifact: ${{ steps.scan.outputs.artifact }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - run: pip install aiohttp==3.14.3
+      - uses: actions/download-artifact@v4
+        with:
+          name: ${{ needs.p016.outputs.artifact }}
+          path: incoming
+      - id: scan
+        run: python collector_v14.py phase --phase 17
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: state-${{ fromJson(inputs.task).key }}-p017
+          path: result/
+          retention-days: 2
+          if-no-files-found: error
+  p018:
+    needs: p017
+    if: ${{ needs.p017.outputs.again == 'true' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 160
+    outputs:
+      again: ${{ steps.scan.outputs.again }}
+      artifact: ${{ steps.scan.outputs.artifact }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - run: pip install aiohttp==3.14.3
+      - uses: actions/download-artifact@v4
+        with:
+          name: ${{ needs.p017.outputs.artifact }}
+          path: incoming
+      - id: scan
+        run: python collector_v14.py phase --phase 18
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: state-${{ fromJson(inputs.task).key }}-p018
+          path: result/
+          retention-days: 2
+          if-no-files-found: error
+  p019:
+    needs: p018
+    if: ${{ needs.p018.outputs.again == 'true' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 160
+    outputs:
+      again: ${{ steps.scan.outputs.again }}
+      artifact: ${{ steps.scan.outputs.artifact }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - run: pip install aiohttp==3.14.3
+      - uses: actions/download-artifact@v4
+        with:
+          name: ${{ needs.p018.outputs.artifact }}
+          path: incoming
+      - id: scan
+        run: python collector_v14.py phase --phase 19
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: state-${{ fromJson(inputs.task).key }}-p019
+          path: result/
+          retention-days: 2
+          if-no-files-found: error
+  p020:
+    needs: p019
+    if: ${{ needs.p019.outputs.again == 'true' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 160
+    outputs:
+      again: ${{ steps.scan.outputs.again }}
+      artifact: ${{ steps.scan.outputs.artifact }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - run: pip install aiohttp==3.14.3
+      - uses: actions/download-artifact@v4
+        with:
+          name: ${{ needs.p019.outputs.artifact }}
+          path: incoming
+      - id: scan
+        run: python collector_v14.py phase --phase 20
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: state-${{ fromJson(inputs.task).key }}-p020
+          path: result/
+          retention-days: 2
+          if-no-files-found: error
+  p021:
+    needs: p020
+    if: ${{ needs.p020.outputs.again == 'true' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 160
+    outputs:
+      again: ${{ steps.scan.outputs.again }}
+      artifact: ${{ steps.scan.outputs.artifact }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - run: pip install aiohttp==3.14.3
+      - uses: actions/download-artifact@v4
+        with:
+          name: ${{ needs.p020.outputs.artifact }}
+          path: incoming
+      - id: scan
+        run: python collector_v14.py phase --phase 21
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: state-${{ fromJson(inputs.task).key }}-p021
+          path: result/
+          retention-days: 2
+          if-no-files-found: error
+  p022:
+    needs: p021
+    if: ${{ needs.p021.outputs.again == 'true' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 160
+    outputs:
+      again: ${{ steps.scan.outputs.again }}
+      artifact: ${{ steps.scan.outputs.artifact }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - run: pip install aiohttp==3.14.3
+      - uses: actions/download-artifact@v4
+        with:
+          name: ${{ needs.p021.outputs.artifact }}
+          path: incoming
+      - id: scan
+        run: python collector_v14.py phase --phase 22
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: state-${{ fromJson(inputs.task).key }}-p022
+          path: result/
+          retention-days: 2
+          if-no-files-found: error
+  p023:
+    needs: p022
+    if: ${{ needs.p022.outputs.again == 'true' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 160
+    outputs:
+      again: ${{ steps.scan.outputs.again }}
+      artifact: ${{ steps.scan.outputs.artifact }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - run: pip install aiohttp==3.14.3
+      - uses: actions/download-artifact@v4
+        with:
+          name: ${{ needs.p022.outputs.artifact }}
+          path: incoming
+      - id: scan
+        run: python collector_v14.py phase --phase 23
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: state-${{ fromJson(inputs.task).key }}-p023
+          path: result/
+          retention-days: 2
+          if-no-files-found: error
+  p024:
+    needs: p023
+    if: ${{ needs.p023.outputs.again == 'true' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 160
+    outputs:
+      again: ${{ steps.scan.outputs.again }}
+      artifact: ${{ steps.scan.outputs.artifact }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - run: pip install aiohttp==3.14.3
+      - uses: actions/download-artifact@v4
+        with:
+          name: ${{ needs.p023.outputs.artifact }}
+          path: incoming
+      - id: scan
+        run: python collector_v14.py phase --phase 24
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: state-${{ fromJson(inputs.task).key }}-p024
+          path: result/
+          retention-days: 2
+          if-no-files-found: error
+  p025:
+    needs: p024
+    if: ${{ needs.p024.outputs.again == 'true' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 160
+    outputs:
+      again: ${{ steps.scan.outputs.again }}
+      artifact: ${{ steps.scan.outputs.artifact }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - run: pip install aiohttp==3.14.3
+      - uses: actions/download-artifact@v4
+        with:
+          name: ${{ needs.p024.outputs.artifact }}
+          path: incoming
+      - id: scan
+        run: python collector_v14.py phase --phase 25
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: state-${{ fromJson(inputs.task).key }}-p025
+          path: result/
+          retention-days: 2
+          if-no-files-found: error
+  p026:
+    needs: p025
+    if: ${{ needs.p025.outputs.again == 'true' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 160
+    outputs:
+      again: ${{ steps.scan.outputs.again }}
+      artifact: ${{ steps.scan.outputs.artifact }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - run: pip install aiohttp==3.14.3
+      - uses: actions/download-artifact@v4
+        with:
+          name: ${{ needs.p025.outputs.artifact }}
+          path: incoming
+      - id: scan
+        run: python collector_v14.py phase --phase 26
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: state-${{ fromJson(inputs.task).key }}-p026
+          path: result/
+          retention-days: 2
+          if-no-files-found: error
+  p027:
+    needs: p026
+    if: ${{ needs.p026.outputs.again == 'true' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 160
+    outputs:
+      again: ${{ steps.scan.outputs.again }}
+      artifact: ${{ steps.scan.outputs.artifact }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - run: pip install aiohttp==3.14.3
+      - uses: actions/download-artifact@v4
+        with:
+          name: ${{ needs.p026.outputs.artifact }}
+          path: incoming
+      - id: scan
+        run: python collector_v14.py phase --phase 27
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: state-${{ fromJson(inputs.task).key }}-p027
+          path: result/
+          retention-days: 2
+          if-no-files-found: error
+  p028:
+    needs: p027
+    if: ${{ needs.p027.outputs.again == 'true' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 160
+    outputs:
+      again: ${{ steps.scan.outputs.again }}
+      artifact: ${{ steps.scan.outputs.artifact }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - run: pip install aiohttp==3.14.3
+      - uses: actions/download-artifact@v4
+        with:
+          name: ${{ needs.p027.outputs.artifact }}
+          path: incoming
+      - id: scan
+        run: python collector_v14.py phase --phase 28
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: state-${{ fromJson(inputs.task).key }}-p028
+          path: result/
+          retention-days: 2
+          if-no-files-found: error
+  p029:
+    needs: p028
+    if: ${{ needs.p028.outputs.again == 'true' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 160
+    outputs:
+      again: ${{ steps.scan.outputs.again }}
+      artifact: ${{ steps.scan.outputs.artifact }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - run: pip install aiohttp==3.14.3
+      - uses: actions/download-artifact@v4
+        with:
+          name: ${{ needs.p028.outputs.artifact }}
+          path: incoming
+      - id: scan
+        run: python collector_v14.py phase --phase 29
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: state-${{ fromJson(inputs.task).key }}-p029
+          path: result/
+          retention-days: 2
+          if-no-files-found: error
+  p030:
+    needs: p029
+    if: ${{ needs.p029.outputs.again == 'true' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 160
+    outputs:
+      again: ${{ steps.scan.outputs.again }}
+      artifact: ${{ steps.scan.outputs.artifact }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - run: pip install aiohttp==3.14.3
+      - uses: actions/download-artifact@v4
+        with:
+          name: ${{ needs.p029.outputs.artifact }}
+          path: incoming
+      - id: scan
+        run: python collector_v14.py phase --phase 30
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: state-${{ fromJson(inputs.task).key }}-p030
+          path: result/
+          retention-days: 2
+          if-no-files-found: error
+  p031:
+    needs: p030
+    if: ${{ needs.p030.outputs.again == 'true' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 160
+    outputs:
+      again: ${{ steps.scan.outputs.again }}
+      artifact: ${{ steps.scan.outputs.artifact }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - run: pip install aiohttp==3.14.3
+      - uses: actions/download-artifact@v4
+        with:
+          name: ${{ needs.p030.outputs.artifact }}
+          path: incoming
+      - id: scan
+        run: python collector_v14.py phase --phase 31
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: state-${{ fromJson(inputs.task).key }}-p031
+          path: result/
+          retention-days: 2
+          if-no-files-found: error
+  p032:
+    needs: p031
+    if: ${{ needs.p031.outputs.again == 'true' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 160
+    outputs:
+      again: ${{ steps.scan.outputs.again }}
+      artifact: ${{ steps.scan.outputs.artifact }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - run: pip install aiohttp==3.14.3
+      - uses: actions/download-artifact@v4
+        with:
+          name: ${{ needs.p031.outputs.artifact }}
+          path: incoming
+      - id: scan
+        run: python collector_v14.py phase --phase 32
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: state-${{ fromJson(inputs.task).key }}-p032
+          path: result/
+          retention-days: 2
+          if-no-files-found: error
+  finish:
+    if: always()
+    needs: [p001, p002, p003, p004, p005, p006, p007, p008, p009, p010, p011, p012, p013, p014, p015, p016, p017, p018, p019, p020, p021, p022, p023, p024, p025, p026, p027, p028, p029, p030, p031, p032]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - run: pip install aiohttp==3.14.3
+      - id: select
+        env:
+          NEEDS_JSON: ${{ toJson(needs) }}
+        run: python collector_v14.py select
+      - uses: actions/download-artifact@v4
+        if: steps.select.outputs.artifact != 'missing'
+        with:
+          name: ${{ steps.select.outputs.artifact }}
+          path: incoming
+      - run: python collector_v14.py finish
+      - uses: actions/upload-artifact@v4
+        with:
+          name: cohort-${{ fromJson(inputs.task).key }}
+          path: cohort/
+          retention-days: 2
+          if-no-files-found: error
