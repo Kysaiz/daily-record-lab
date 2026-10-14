@@ -4,6 +4,8 @@ on:
     inputs:
       task: {type: string, required: true}
       deadline: {type: string, required: true}
+      seed_run_id: {type: string, default: ''}
+      seed_artifact: {type: string, default: ''}
 permissions: {contents: read, actions: read}
 env:
   TASK: ${{ inputs.task }}
@@ -20,7 +22,18 @@ jobs:
       - uses: actions/setup-python@v5
         with: {python-version: '3.12'}
       - run: pip install aiohttp==3.14.3
+      - uses: actions/download-artifact@v4
+        if: inputs.seed_artifact != ''
+        with:
+          name: ${{ inputs.seed_artifact }}
+          run-id: ${{ inputs.seed_run_id }}
+          github-token: ${{ github.token }}
+          path: incoming
+      - run: python restore_seed_v1651.py seed
+        if: inputs.seed_artifact != ''
       - id: scan
+        env:
+          RESTORE_SEED: ${{ inputs.seed_artifact != '' }}
         run: python collector_v143.py phase --phase 1
       - uses: actions/upload-artifact@v4
         if: always()

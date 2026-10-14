@@ -1,0 +1,75 @@
+name: Repair one interrupted Legion shard v16.5.1
+on:
+  workflow_call:
+    inputs:
+      task: {type: string, required: true}
+      source_run_id: {type: string, required: true}
+      deadline: {type: string, required: true}
+permissions: {contents: read, actions: read}
+env:
+  TASK: ${{ inputs.task }}
+  DEADLINE: ${{ inputs.deadline }}
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    outputs:
+      shard: ${{ steps.plan.outputs.shard }}
+      seed_artifact: ${{ steps.plan.outputs.seed_artifact }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - run: pip install aiohttp==3.14.3
+      - uses: actions/download-artifact@v4
+        with:
+          name: plan-${{ fromJson(inputs.task).key }}-a1
+          path: planning
+          run-id: ${{ inputs.source_run_id }}
+          github-token: ${{ github.token }}
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: cohort-${{ fromJson(inputs.task).key }}-s*-a1
+          path: collected
+          run-id: ${{ inputs.source_run_id }}
+          github-token: ${{ github.token }}
+      - id: plan
+        run: python restore_seed_v1651.py plan
+  repair:
+    needs: prepare
+    uses: ./.github/workflows/chain-128-v143.yml
+    with:
+      task: ${{ needs.prepare.outputs.shard }}
+      deadline: ${{ inputs.deadline }}
+      seed_run_id: ${{ inputs.source_run_id }}
+      seed_artifact: ${{ needs.prepare.outputs.seed_artifact }}
+  merge:
+    needs: [prepare, repair]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.12'}
+      - run: pip install aiohttp==3.14.3
+      - uses: actions/download-artifact@v4
+        with:
+          name: plan-${{ fromJson(inputs.task).key }}-a1
+          path: planning
+          run-id: ${{ inputs.source_run_id }}
+          github-token: ${{ github.token }}
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: cohort-${{ fromJson(inputs.task).key }}-s*-a1
+          path: collected
+          run-id: ${{ inputs.source_run_id }}
+          github-token: ${{ github.token }}
+      - uses: actions/download-artifact@v4
+        with:
+          name: cohort-${{ fromJson(needs.prepare.outputs.shard).key }}
+          path: collected/cohort-${{ fromJson(needs.prepare.outputs.shard).key }}
+      - run: python collector_v143.py merge --attempt 1
+      - uses: actions/upload-artifact@v4
+        with:
+          name: cohort-${{ fromJson(inputs.task).key }}
+          path: cohort/
+          retention-days: 2
