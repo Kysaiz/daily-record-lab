@@ -187,6 +187,14 @@ async def execute(task,folder,seed):
     collector=(RangeCollector if 'start_rank' in task else JobCollector)(task,folder,seed)
     await collector.run();collector.audit_committed();report=collector.report()
     report['raw_segment_audit_passed']=True
+    first_429=report.get('sent_requests')==1 and report.get('statuses')=={'429':1} and not report.get('snapshot_changed')
+    report['first_request_429']=first_429
+    if first_429 and seed is not None:
+        # No new scan was committed: retain the previously audited seed.
+        # The next runner must still perform its normal handoff verification.
+        if collector.rows!=seed['rows']:raise RuntimeError('Refused handoff modified seed')
+        report['preserved_seed_after_first_429']=True
+        report['resumable']=True
     for phase in ('start','end'):report['environment_'+phase]=read(folder/f'environment-{phase}.json')
     write(folder/'report.json',report)
     if report['complete'] or report['resumable'] or (collector.handoff_valid and collector.rows and network_error(report['error'])):
@@ -204,6 +212,7 @@ def decide(report,control,task):
             control['resets']=control.get('resets',0)+1
             control.pop('not_before',None);control['stability_required']=True;control['stability_report']=report;mode='fresh'
         elif report.get('resumable'):mode='resume'
+        elif report.get('first_request_429'):mode='fresh'
         elif network_error(report.get('error')) and control.get('network_retries',0)<1:
             control['network_retries']=1;mode='resume' if control.get('checkpoint_available') else 'fresh'
     control['mode']=mode;return control
@@ -380,7 +389,7 @@ def export(root,tasks):
 def main():
     p=argparse.ArgumentParser();p.add_argument('action',choices=['phase','finish','select','plan','merge','export','prepare']);p.add_argument('--phase',type=int);p.add_argument('--attempt',type=int,default=1)
     args=p.parse_args();task=json.loads(os.getenv('TASK','{}'))
-    if args.action=='phase':phase(task,args.phase,Path('incoming') if args.phase>1 else None,Path('result'))
+    if args.action=='phase':phase(task,args.phase,Path('incoming') if args.phase>1 or os.getenv('RESTORE_SEED')=='true' else None,Path('result'))
     elif args.action=='finish':finish(Path('incoming'),Path('cohort'),task)
     elif args.action=='select':
         results=json.loads(os.environ['NEEDS_JSON']);values=[v['outputs'].get('artifact') for name in sorted(results) for v in [results[name]] if v['outputs'].get('artifact')]
