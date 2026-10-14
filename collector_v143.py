@@ -48,8 +48,16 @@ def validate_response(payload,position,task,total=None):
     return count
 
 class JobCollector(old.TaskCollector):
+    async def fetch(self,position,phase):
+        payload=await super().fetch(position,phase)
+        from active_avatar_urls import captured
+        if not hasattr(self,'avatar_urls'):self.avatar_urls={}
+        for row in captured(payload['ranks'],self.task,base.stamp()):
+            self.avatar_urls[(row['name'].casefold(),row['world'])]=row
+        return payload
     def report(self):
         r=super().report();r['snapshot_changed']=stability.suspect(r.get('error'))
+        r['avatar_urls']=list(getattr(self,'avatar_urls',{}).values())
         r['failure_kind']='suspected_snapshot_update' if r['snapshot_changed'] else ('none' if not r['error'] else 'transport_or_data_anomaly')
         write(self.out/'report.json',r);return r
 
