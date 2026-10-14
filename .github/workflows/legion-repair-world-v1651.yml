@@ -28,8 +28,50 @@ jobs:
           github-token: ${{ github.token }}
       - uses: actions/download-artifact@v4
         with:
-          pattern: cohort-${{ fromJson(inputs.task).key }}-s*-a1
-          path: collected
+          name: cohort-${{ fromJson(inputs.task).key }}-s0-a1
+          path: collected/cohort-${{ fromJson(inputs.task).key }}-s0-a1
+          run-id: ${{ inputs.source_run_id }}
+          github-token: ${{ github.token }}
+      - uses: actions/download-artifact@v4
+        with:
+          name: cohort-${{ fromJson(inputs.task).key }}-s1-a1
+          path: collected/cohort-${{ fromJson(inputs.task).key }}-s1-a1
+          run-id: ${{ inputs.source_run_id }}
+          github-token: ${{ github.token }}
+      - uses: actions/download-artifact@v4
+        with:
+          name: cohort-${{ fromJson(inputs.task).key }}-s2-a1
+          path: collected/cohort-${{ fromJson(inputs.task).key }}-s2-a1
+          run-id: ${{ inputs.source_run_id }}
+          github-token: ${{ github.token }}
+      - uses: actions/download-artifact@v4
+        with:
+          name: cohort-${{ fromJson(inputs.task).key }}-s3-a1
+          path: collected/cohort-${{ fromJson(inputs.task).key }}-s3-a1
+          run-id: ${{ inputs.source_run_id }}
+          github-token: ${{ github.token }}
+      - uses: actions/download-artifact@v4
+        with:
+          name: cohort-${{ fromJson(inputs.task).key }}-s4-a1
+          path: collected/cohort-${{ fromJson(inputs.task).key }}-s4-a1
+          run-id: ${{ inputs.source_run_id }}
+          github-token: ${{ github.token }}
+      - uses: actions/download-artifact@v4
+        with:
+          name: cohort-${{ fromJson(inputs.task).key }}-s5-a1
+          path: collected/cohort-${{ fromJson(inputs.task).key }}-s5-a1
+          run-id: ${{ inputs.source_run_id }}
+          github-token: ${{ github.token }}
+      - uses: actions/download-artifact@v4
+        with:
+          name: cohort-${{ fromJson(inputs.task).key }}-s6-a1
+          path: collected/cohort-${{ fromJson(inputs.task).key }}-s6-a1
+          run-id: ${{ inputs.source_run_id }}
+          github-token: ${{ github.token }}
+      - uses: actions/download-artifact@v4
+        with:
+          name: cohort-${{ fromJson(inputs.task).key }}-s7-a1
+          path: collected/cohort-${{ fromJson(inputs.task).key }}-s7-a1
           run-id: ${{ inputs.source_run_id }}
           github-token: ${{ github.token }}
       - id: plan
@@ -59,8 +101,50 @@ jobs:
           github-token: ${{ github.token }}
       - uses: actions/download-artifact@v4
         with:
-          pattern: cohort-${{ fromJson(inputs.task).key }}-s*-a1
-          path: collected
+          name: cohort-${{ fromJson(inputs.task).key }}-s0-a1
+          path: collected/cohort-${{ fromJson(inputs.task).key }}-s0-a1
+          run-id: ${{ inputs.source_run_id }}
+          github-token: ${{ github.token }}
+      - uses: actions/download-artifact@v4
+        with:
+          name: cohort-${{ fromJson(inputs.task).key }}-s1-a1
+          path: collected/cohort-${{ fromJson(inputs.task).key }}-s1-a1
+          run-id: ${{ inputs.source_run_id }}
+          github-token: ${{ github.token }}
+      - uses: actions/download-artifact@v4
+        with:
+          name: cohort-${{ fromJson(inputs.task).key }}-s2-a1
+          path: collected/cohort-${{ fromJson(inputs.task).key }}-s2-a1
+          run-id: ${{ inputs.source_run_id }}
+          github-token: ${{ github.token }}
+      - uses: actions/download-artifact@v4
+        with:
+          name: cohort-${{ fromJson(inputs.task).key }}-s3-a1
+          path: collected/cohort-${{ fromJson(inputs.task).key }}-s3-a1
+          run-id: ${{ inputs.source_run_id }}
+          github-token: ${{ github.token }}
+      - uses: actions/download-artifact@v4
+        with:
+          name: cohort-${{ fromJson(inputs.task).key }}-s4-a1
+          path: collected/cohort-${{ fromJson(inputs.task).key }}-s4-a1
+          run-id: ${{ inputs.source_run_id }}
+          github-token: ${{ github.token }}
+      - uses: actions/download-artifact@v4
+        with:
+          name: cohort-${{ fromJson(inputs.task).key }}-s5-a1
+          path: collected/cohort-${{ fromJson(inputs.task).key }}-s5-a1
+          run-id: ${{ inputs.source_run_id }}
+          github-token: ${{ github.token }}
+      - uses: actions/download-artifact@v4
+        with:
+          name: cohort-${{ fromJson(inputs.task).key }}-s6-a1
+          path: collected/cohort-${{ fromJson(inputs.task).key }}-s6-a1
+          run-id: ${{ inputs.source_run_id }}
+          github-token: ${{ github.token }}
+      - uses: actions/download-artifact@v4
+        with:
+          name: cohort-${{ fromJson(inputs.task).key }}-s7-a1
+          path: collected/cohort-${{ fromJson(inputs.task).key }}-s7-a1
           run-id: ${{ inputs.source_run_id }}
           github-token: ${{ github.token }}
       - uses: actions/download-artifact@v4
