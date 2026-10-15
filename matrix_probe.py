@@ -114,7 +114,7 @@ def environment(out, stage):
     except Exception as exc:
         data['egress_ipv4'], data['egress_error'] = None, str(exc)
     (out/f'environment-{stage}.json').write_text(json.dumps(data, indent=2), encoding='utf-8')
-    print(json.dumps(data), flush=True)
+    print(json.dumps({'environment_recorded':stage,'egress_available':bool(data.get('egress_ipv4'))}),flush=True)
     return data
 
 
@@ -299,7 +299,8 @@ class Collector:
             self.status, self.error = 'incomplete', f'{type(exc).__name__}: {exc}'
         finally:
             environment(self.out, 'end')
-            print(json.dumps(self.report()), flush=True)
+            report=self.report()
+            print(json.dumps({k:report.get(k) for k in ('status','rows','sent_requests','statuses','complete','raw_segment_audit_passed')}),flush=True)
         return 0 if self.status == 'complete_class_observation' else 2
 
 
