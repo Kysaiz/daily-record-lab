@@ -31,6 +31,7 @@ jobs:
         env: {KIND: job}
         run: python collector_v143.py prepare
   collect:
+    name: collect (${{ matrix.task.key }})
     needs: prepare
     strategy:
       fail-fast: false

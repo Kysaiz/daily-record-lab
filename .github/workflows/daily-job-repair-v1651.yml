@@ -29,6 +29,7 @@ jobs:
         env: {TASK: '{}'}
         run: python restore_seed_v1651.py jobs
   collect:
+    name: collect (${{ matrix.task.key }})
     needs: prepare
     strategy:
       fail-fast: false
