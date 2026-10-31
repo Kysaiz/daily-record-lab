@@ -208,14 +208,29 @@ def network_error(error):return bool(error) and error.startswith(('ClientOSError
 def decide(report,control,task):
     control=dict(control);mode='done'
     if not report['complete'] and not any(str(code) in ('401','403') for code in report.get('statuses',{})):
-        if stability.suspect(report.get('error')) and task['type']=='job' and control.get('resets',0)<1:
+        if control.get('repair_snapshot_only') and report.get('snapshot_changed'):
+            mode='done'
+        elif stability.suspect(report.get('error')) and task['type']=='job' and control.get('resets',0)<1:
             control['resets']=control.get('resets',0)+1
             control.pop('not_before',None);control['stability_required']=True;control['stability_report']=report;mode='fresh'
         elif report.get('resumable'):mode='resume'
         elif report.get('first_request_429'):mode='fresh'
-        elif network_error(report.get('error')) and control.get('network_retries',0)<1:
-            control['network_retries']=1;mode='resume' if control.get('checkpoint_available') else 'fresh'
+        elif network_error(report.get('error')) and control.get('network_retries',0)<3:
+            control['network_retries']=control.get('network_retries',0)+1
+            delay=15*2**(control['network_retries']-1)
+            control['network_retry_not_before_utc']=(datetime.now(timezone.utc)+timedelta(seconds=delay)).isoformat()
+            mode='resume' if control.get('checkpoint_available') else 'fresh'
     control['mode']=mode;return control
+
+def wait_network_recovery(control):
+    due=control.pop('network_retry_not_before_utc',None)
+    if not due:return
+    target=datetime.fromisoformat(due)
+    while True:
+        if expired():raise RuntimeError('Daily deadline reached during network recovery wait')
+        delay=(target-datetime.now(timezone.utc)).total_seconds()
+        if delay<=0:return
+        time.sleep(min(delay,10))
 
 def phase(task,number,incoming,out):
     out.mkdir(parents=True,exist_ok=True)
@@ -232,6 +247,7 @@ def phase(task,number,incoming,out):
             stability.watch(task,previous['stability_report'],out/'stability')
             previous.pop('stability_required',None);previous.pop('stability_report',None)
         if expired():raise RuntimeError('Daily deadline reached')
+        wait_network_recovery(previous)
         seed=None
         if previous['mode']=='resume':
             seed=json.loads(gzip.decompress((incoming/'checkpoint.json.gz').read_bytes()))
