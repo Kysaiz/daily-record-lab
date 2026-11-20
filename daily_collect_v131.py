@@ -30,8 +30,9 @@ def validate(payload,position,task,total=None):
 class Session:
     def __init__(self,session,task):self.session,self.task=session,task
     def get(self,url,**kwargs):
-        kwargs['params'].update(type=self.task['type'],id=self.task['id'])
-        return self.session.get(url,**kwargs)
+        kwargs['params'].pop('type',None)
+        kwargs['params']['id']=self.task['id']
+        return self.session.get(base.API+'/'+self.task['type'],**kwargs)
 
 
 class TaskCollector(base.Collector):

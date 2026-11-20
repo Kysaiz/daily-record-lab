@@ -25,7 +25,7 @@ CLASSES = [
     'Pathfinder', 'Phantom', 'Shade', 'Shadower', 'Thunder Breaker', 'Wild Hunter',
     'Wind Archer', 'Xenon', 'Zero',
 ]
-API = 'https://www.nexon.com/api/maplestory/no-auth/ranking/v2/na'
+API = 'https://www.nexon.com/api/maplestory/ranking/v1/no-auth/na'
 MAX_PAGES, MAX_SECONDS, MAX_EXTRA, MAX_429 = 3000, 1500, 40, 12
 
 
@@ -152,7 +152,7 @@ class Collector:
             self.max_active = max(self.max_active, self.active)
             started = time.monotonic()
             try:
-                async with self.session.get(API, params={'type':'job', 'id':self.job,
+                async with self.session.get(API+'/job', params={'id':self.job,
                     'reboot_index':0, 'page_index':position}, allow_redirects=False,
                     trace_request_ctx=record) as response:
                     record.update(status=response.status, retry_after=response.headers.get('Retry-After'),
