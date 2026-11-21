@@ -40,7 +40,7 @@ async def observe(task,positions,out):
         session._retry_connection=False
         for position in positions:
             if datetime.now(timezone.utc)>=datetime.fromisoformat(os.environ['DEADLINE']):raise RuntimeError('Daily deadline reached during stability watch')
-            async with session.get('https://www.nexon.com/api/maplestory/no-auth/ranking/v2/na',params={'type':task['type'],'id':task['id'],'reboot_index':0,'page_index':position},allow_redirects=False) as response:
+            async with session.get(f'https://www.nexon.com/api/maplestory/ranking/v1/no-auth/na/{task["type"]}',params={'id':task['id'],'reboot_index':0,'page_index':position},allow_redirects=False) as response:
                 raw=await response.read()
                 (out/f'{position}.json').write_bytes(raw)
                 if response.status!=200:raise RuntimeError(f'HTTP {response.status}; stability watch stopped; Retry-After={response.headers.get("Retry-After")}')
