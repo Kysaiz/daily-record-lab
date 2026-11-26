@@ -198,14 +198,36 @@ class RangeCollector(old.TaskCollector):
 class PlanCollector(FirstPageCloudFrontRetryMixin, old.TaskCollector):
     def __init__(self,task,out):super().__init__(task,out);self.plan=None
     async def rank(self,rank,phase='plan'):
-        payload=await self.fetch(max(1,rank-4),phase)
-        # Competition ranks can tie and skip. A target within a skipped rank
-        # belongs to the preceding tie group, not to the following character.
-        eligible=[old.compact(r) for r in payload['ranks'] if r['rank']<=rank]
-        if not eligible:raise RuntimeError('Missing planning interval; data anomaly')
-        last=max(r['rank'] for r in eligible);group=[r for r in eligible if r['rank']==last]
-        if len({r['legionLevel'] for r in group})!=1:raise RuntimeError('Inconsistent tied Legion levels; data anomaly')
-        return sorted(group,key=lambda r:base.key(r))[0]
+        # Competition ranks can tie and skip arbitrarily many ordinals (especially
+        # among raidPower=0 rows probed during binary search). Walk back and narrow
+        # until no rank can exist between the matched tie group and target `rank`.
+        empty_from=rank+1;next_floor=1;best_group=None;step=4;pos=max(1,rank-step)
+        for _ in range(32):
+            payload=await self.fetch(pos,phase)
+            rows=[old.compact(r) for r in payload['ranks']]
+            eligible=[r for r in rows if r['rank']<=rank]
+            if not eligible:
+                empty_from=min(empty_from,pos)
+                if best_group is not None and empty_from<=next_floor:break
+                if pos<=1:raise RuntimeError('Missing planning interval; data anomaly')
+                if best_group is not None:
+                    pos=max(1,(next_floor+empty_from-1)//2)
+                else:
+                    step*=2;pos=max(1,empty_from-step)
+                await asyncio.sleep(.2);continue
+            dedup={base.key(r):r for r in eligible}
+            last=max(r['rank'] for r in dedup.values())
+            group=[r for r in dedup.values() if r['rank']==last]
+            if len({r['legionLevel'] for r in group})!=1:raise RuntimeError('Inconsistent tied Legion levels; data anomaly')
+            best_group=group
+            next_floor=max(next_floor,last+len(group))
+            if any(r['rank']>rank for r in rows) or len(rows)<10 or next_floor>=empty_from:break
+            pos=(next_floor+empty_from-1)//2 if empty_from<=rank else (next_floor+rank)//2
+            await asyncio.sleep(.2)
+        else:
+            raise RuntimeError('Planning tie resolution budget exhausted')
+        if not best_group:raise RuntimeError('Missing planning interval; data anomaly')
+        return sorted(best_group,key=lambda r:base.key(r))[0]
     async def collect_legion(self):
         first=await self.fetch(1,'plan')
         if not self.total or first['ranks'][0]['rank']!=1:raise RuntimeError('Unexpected empty/offset world')
@@ -419,7 +441,8 @@ class VerifyCollector(FirstPageCloudFrontRetryMixin, old.TaskCollector):
     def __init__(self,plan,out):super().__init__(plan['task'],out);self.plan=plan;self.total=plan['total_count']
     async def collect_legion(self):
         for rank,expected in self.plan['anchors'].items():
-            payload=await self.fetch(max(1,int(rank)-4),'world_final_anchor')
+            anchor_pos=max(1,int(expected['rank'])) if isinstance(expected,dict) and 'rank' in expected else max(1,int(rank)-4)
+            payload=await self.fetch(anchor_pos,'world_final_anchor')
             found=[old.compact(r) for r in payload['ranks'] if base.key(r)==base.key(expected)]
             if len({old.digest(r) for r in found})!=1:raise RuntimeError('Missing world identity anchor; data anomaly')
             if found[0]!=expected:raise RuntimeError('snapshot changed: world final anchor')
